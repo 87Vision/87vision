@@ -2018,7 +2018,7 @@
       <div class="options-bar">
         <div class="opt-group">
           <label class="opt-label">Langue de sortie</label>
-          <select class="opt-select" id="opt-lang" onchange="lang=this.value">
+          <select class="opt-select" id="opt-lang" onchange="lang=this.value;localStorage.setItem('87v_lang',this.value)">
             <option value="fr">🇫🇷 Français</option>
             <option value="en">🇬🇧 English</option>
             <option value="es">🇪🇸 Español</option>
@@ -2028,7 +2028,7 @@
         </div>
         <div class="opt-group">
           <label class="opt-label">Ton éditorial</label>
-          <select class="opt-select" id="opt-tone" onchange="tone=this.value">
+          <select class="opt-select" id="opt-tone" onchange="tone=this.value;localStorage.setItem('87v_tone',this.value)">
             <option value="standard">Standard</option>
             <option value="luxe">Luxe &amp; Premium</option>
             <option value="casual">Décontracté</option>
@@ -2038,7 +2038,7 @@
         </div>
         <div class="opt-group">
           <label class="opt-label">Plateforme cible</label>
-          <select class="opt-select" id="opt-platform" onchange="platform=this.value">
+          <select class="opt-select" id="opt-platform" onchange="platform=this.value;localStorage.setItem('87v_platform',this.value)">
             <option value="generic">Générique</option>
             <option value="shopify">Shopify</option>
             <option value="amazon">Amazon</option>
@@ -2063,7 +2063,7 @@
       <!-- AI Hint -->
       <div style="margin-bottom:12px">
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px">💡 Aide l'IA (optionnel)</div>
-        <input type="text" id="ai-hint" placeholder="Ex: Arc&#39;teryx Beta AR taille L · iPhone 15 Pro 256Go · Jordan 1 Retro High OG"
+        <input type="text" id="ai-hint" placeholder="Ex: Arc'teryx Beta AR taille L · iPhone 15 Pro 256Go · Jordan 1 Retro High OG"
           style="width:100%;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none;transition:border-color .2s"
           onfocus="this.style.borderColor='rgba(201,168,76,0.5)'" onblur="this.style.borderColor=''"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();generate()}">
@@ -2318,9 +2318,9 @@ let session = [];  // cards generated this session
 let histData = []; // loaded history
 let obStep = 0;
 let view = 'gen';
-let lang = 'fr';
-let tone = 'standard';
-let platform = 'generic';
+let lang     = localStorage.getItem('87v_lang')     || 'fr';
+let tone     = localStorage.getItem('87v_tone')     || 'standard';
+let platform = localStorage.getItem('87v_platform') || 'generic';
 let provider = 'openrouter'; // 'openrouter' | 'anthropic'
 let twoFAPending = false;
 let twoFAChallId = null;
@@ -2451,7 +2451,7 @@ async function completeLogin(u) {
 }
 
 function logoutUser() {
-  user = null; profile = null;
+  user = null; profile = null; histData = [];
   document.getElementById('login-screen').style.display = 'block';
   document.getElementById('app').style.display = 'none';
 }
@@ -2648,9 +2648,10 @@ async function addFiles(files) {
 }
 
 function readFile(f) {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = e => res(e.target.result);
+    r.onerror = () => rej(new Error('Impossible de lire le fichier : ' + f.name));
     r.readAsDataURL(f);
   });
 }
@@ -2877,7 +2878,9 @@ async function openrouterGen(key, dataUrl, cardId) {
       if (st) st.textContent = 'Rédaction de la fiche…';
       let json = text.trim();
       if (json.startsWith('```')) json = json.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim();
-      const sheet = JSON.parse(json);
+      let sheet;
+      try { sheet = JSON.parse(json); }
+      catch { lastErr = 'Réponse IA invalide (JSON malformé)'; continue; }
       renderCard(cardId, sheet);
       return sheet;
 
@@ -3095,7 +3098,9 @@ async function streamGen(key, dataUrl, cardId) {
   // Final parse
   let json = raw.trim();
   if (json.startsWith('```')) json = json.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim();
-  const sheet = JSON.parse(json);
+  let sheet;
+  try { sheet = JSON.parse(json); }
+  catch { throw new Error('Réponse IA invalide (JSON malformé)'); }
   renderCard(cardId, sheet);
   return sheet;
 }
@@ -3213,7 +3218,8 @@ function renderCard(id, s) {
     const short = document.getElementById(id+'-short')?.textContent || '';
     const long  = document.getElementById(id+'-long')?.textContent  || '';
     const tags  = [...(document.getElementById(id+'-tags')?.querySelectorAll('.tag span[contenteditable]')||[])].map(t=>t.textContent.trim()).filter(Boolean);
-    await SB.from('product_sheets').update({ title, short_description: short, long_description: long, tags }).eq('id', dbId);
+    const { error: saveErr } = await SB.from('product_sheets').update({ title, short_description: short, long_description: long, tags }).eq('id', dbId);
+    if (saveErr) { toast('Erreur de sauvegarde', 'e'); return; }
     toast('Modifications sauvegardées ✓', 's');
   }, 1500);
   ['title','short','long'].forEach(f => {
@@ -3438,8 +3444,8 @@ function filterHistory(query) {
     g.innerHTML = `<div class="hist-empty"><div class="hist-empty-icon">🔍</div><p>Aucun résultat pour "${esc(query)}"</p></div>`;
     return;
   }
-  g.innerHTML = filtered.map((s, i) => {
-    const realIdx = histData.indexOf(s);
+  g.innerHTML = filtered.map(s => {
+    const realIdx = histData.findIndex(x => x.id === s.id);
     return `
     <div class="hist-card" onclick="showDetail(${realIdx})">
       <button class="hist-del" onclick="deleteSheet('${s.id}',event)" title="Supprimer">✕</button>
@@ -3683,7 +3689,7 @@ function switchView(v) {
   if (v === 'hist') {
     const searchEl = document.getElementById('hist-search');
     if (searchEl) searchEl.value = '';
-    loadHistory();
+    if (!histData.length) loadHistory(); else renderHistory();
   }
 }
 
@@ -3705,7 +3711,8 @@ function toast(msg, type = 'i') {
   t.className = `toast ${type}`;
   t.innerHTML = `<span>${icons[type]||'ℹ'}</span> ${msg}`;
   c.appendChild(t);
-  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>t.remove(),300); }, 3200);
+  const ms = Math.max(2500, Math.min(6000, msg.length * 55));
+  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>t.remove(),300); }, ms);
 }
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
@@ -3773,6 +3780,13 @@ function sendNotif(title, body) {
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 const _btnGoogleLogin = document.getElementById('btn-google-login');
 if (_btnGoogleLogin) _btnGoogleLogin.addEventListener('click', googleLogin);
+
+// Restore persisted select values
+const _ls = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+_ls('opt-lang',     lang);
+_ls('opt-tone',     tone);
+_ls('opt-platform', platform);
+
 init();
 
 // ─── 2FA SETTINGS ────────────────────────────────────────────────────────────
