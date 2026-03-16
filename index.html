@@ -2782,12 +2782,12 @@ Vérifie ton titre avant de répondre.`;
 }
 
 // ─── OPENROUTER GENERATE ──────────────────────────────────────────────────────
-// ⚠️ Vision-capable models ONLY (text-only models like gemma-3-27b-it crash on images)
+// Modèles vision gratuits actifs sur OpenRouter (vérifié)
 const OR_MODELS = [
-  'qwen/qwen2.5-vl-72b-instruct:free',      // meilleure qualité vision
-  'qwen/qwen2.5-vl-7b-instruct:free',        // plus rapide, bonne qualité
-  'meta-llama/llama-3.2-11b-vision-instruct:free', // fallback fiable
+  'nvidia/nemotron-nano-12b-v2-vl:free',           // vision-language, actif
   'mistralai/mistral-small-3.1-24b-instruct:free', // multimodal
+  'google/gemma-3-27b-it:free',                    // Gemma 3 vision
+  'google/gemma-3-12b-it:free',                    // fallback
 ];
 
 async function tryORModel(key, dataUrl, model, prompt) {
@@ -2814,7 +2814,8 @@ async function tryORModel(key, dataUrl, model, prompt) {
     throw new Error(e.error?.message || e.error?.code || `HTTP ${res.status}`);
   }
   const data = await res.json();
-  const text = data.choices?.[0]?.message?.content || '';
+  const msg = data.choices?.[0]?.message;
+  const text = msg?.content || msg?.reasoning || data.choices?.[0]?.reasoning_details?.[0]?.text || '';
   if (!text) throw new Error('empty');
   return text;
 }
@@ -2860,7 +2861,12 @@ async function openrouterGen(key, dataUrl, cardId) {
       }
 
       const data = await res.json();
-      const text = data.choices?.[0]?.message?.content ?? '';
+      const msg = data.choices?.[0]?.message;
+      // Certains modèles (nvidia nemotron) mettent la réponse dans reasoning au lieu de content
+      const text = msg?.content
+        || msg?.reasoning
+        || data.choices?.[0]?.reasoning_details?.[0]?.text
+        || '';
       if (!text) { lastErr = 'Réponse vide'; continue; }
 
       if (st) st.textContent = 'Rédaction de la fiche…';
