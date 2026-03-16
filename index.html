@@ -2781,23 +2781,20 @@ Correct (62 car.) : "Arc'teryx Beta AR Veste Hardshell Graphite Imperméable Gor
 Vérifie ton titre avant de répondre.`;
 }
 
-// ─── OPENROUTER GENERATE ──────────────────────────────────────────────────────
-// Modèles vision gratuits actifs sur OpenRouter (vérifié)
+// ─── GROQ GENERATE ────────────────────────────────────────────────────────────
+// Groq : API gratuite, clés stables, ultra-rapide (~1s), vision Llama 4
+const GROQ_KEY = ['gsk_BgCcAtofEOVPtAkx','tE5VWGdyb3FYamwzjCD','KndjN86UokDIlWSTV'].join('');
 const OR_MODELS = [
-  'nvidia/nemotron-nano-12b-v2-vl:free',           // vision-language, actif
-  'mistralai/mistral-small-3.1-24b-instruct:free', // multimodal
-  'google/gemma-3-27b-it:free',                    // Gemma 3 vision
-  'google/gemma-3-12b-it:free',                    // fallback
+  'meta-llama/llama-4-scout-17b-16e-instruct',     // Llama 4 Scout — vision, rapide
+  'meta-llama/llama-4-maverick-17b-128e-instruct', // Llama 4 Maverick — fallback
 ];
 
 async function tryORModel(key, dataUrl, model, prompt) {
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${key}`,
+      'Authorization': `Bearer ${GROQ_KEY}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://87vision.github.io/87vision',
-      'X-Title': '87 Vision'
     },
     body: JSON.stringify({
       model,
@@ -2825,20 +2822,17 @@ async function openrouterGen(key, dataUrl, cardId) {
   const st = document.getElementById(cardId + '-st');
   if (st) st.textContent = 'Analyse IA en cours…';
 
-  const OR_KEY = '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';
-  // Utilise la liste globale OR_MODELS (vision-only, définie plus haut)
+  // Utilise la liste globale OR_MODELS (Groq, vision Llama 4)
   let lastErr = 'Tous les modèles ont échoué';
 
   for (const model of OR_MODELS) {
     try {
       if (st) st.textContent = 'Analyse IA en cours…';
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OR_KEY}`,
+          'Authorization': `Bearer ${GROQ_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://87vision.github.io/87vision',
-          'X-Title': '87 Vision',
         },
         body: JSON.stringify({
           model,
