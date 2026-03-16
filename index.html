@@ -2746,21 +2746,25 @@ function buildPrompt() {
   // Use _pendingHint (captured at generation start) so the hint is preserved even after the field is cleared
   const userHint = _pendingHint || '';
 
-  return `Tu es un expert en identification de produits et en rédaction e-commerce SEO. Analyse cette image avec une précision absolue.
+  const hintBlock = userHint
+    ? `\n⛔ MARQUE IMPOSÉE PAR LE VENDEUR — NE PAS MODIFIER : "${userHint}"\nTu DOIS utiliser cette information telle quelle. Ignore tout ce que tu crois reconnaître sur l'image si ça contredit cet indice. La marque est : "${userHint}".\n`
+    : '';
 
+  return `Tu es un expert en identification de produits et en rédaction e-commerce SEO. Analyse cette image avec une précision absolue.
+${hintBlock}
 PHASE 1 — IDENTIFICATION MARQUE (PRIORITÉ ABSOLUE) :
-${userHint ? `INDICE UTILISATEUR (information certaine fournie par le vendeur) : "${userHint}" — Utilise cette information comme base certaine pour identifier le produit.\n\n` : ''}Examine chaque détail visible : logos (même petits ou partiellement visibles), texte imprimé/brodé/en relief, étiquettes, badges, patches, forme du logo.
-Références marques outdoor/mode : Arc'teryx (oiseau stylisé), Patagonia, The North Face (carré), Stone Island (boussole), CP Company (lentille), Moncler, Canada Goose, Salomon, Mammut, Nike (swoosh), Adidas (3 bandes/trèfle), Supreme, Palace, Off-White, etc.
-Si tu vois un logo, identifie la marque avec certitude. Utilise ensuite tes connaissances sur cette marque pour enrichir la fiche.
+${userHint ? `MARQUE CERTIFIÉE PAR LE VENDEUR = "${userHint}". Utilise UNIQUEMENT cette marque, sans exception.\n` : `Examine chaque détail visible : logos (même petits ou partiellement visibles), texte imprimé/brodé/en relief, étiquettes, badges, patches, forme du logo.
+Références marques : Arc'teryx (oiseau stylisé), Patagonia, The North Face, Stone Island (boussole), CP Company (lentille), Moncler, Canada Goose, Salomon, Nike (swoosh), Adidas (3 bandes), Supreme, Off-White, Bottega Veneta, Balenciaga, Gucci, Louis Vuitton, Dior, Prada, Celine, Loewe, Jacquemus, AMI Paris, Maison Margiela, Comme des Garçons, Acne Studios, Our Legacy, Represent, Trapstar, Gallery Dept, Stüssy, Carhartt, Dickies, New Balance, Asics, Saucony, Salehe Bembury, etc.
+Si logo visible → identifie avec certitude. Si aucun logo visible → indique "Marque inconnue".`}
 
 PHASE 2 — GÉNÈRE LA FICHE :
 Langue : ${langOut}. Ton : ${toneOut}.${platHint}
-Si la marque est identifiée, utilise tes connaissances (technologies, matières signature, gamme de prix, réputation) pour rédiger une fiche experte et détaillée.
+Utilise tes connaissances sur la marque (technologies, matières signature, gamme de prix, réputation) pour rédiger une fiche experte.
 
 RÈGLES :
 1. Titre ENTRE 55 ET 70 caractères. Marque + type produit + couleur/caractéristique clé.
 2. priceRange = null sauf si visible sur l'image.
-3. Sois précis sur la marque — ne mets jamais "Marque inconnue" si un logo est visible.
+3. Ne jamais substituer une marque par une autre.
 
 Réponds UNIQUEMENT avec un objet JSON valide, sans markdown :
 {
@@ -2809,7 +2813,7 @@ async function tryORModel(key, dataUrl, model, prompt) {
         { type: 'image_url', image_url: { url: dataUrl } },
         { type: 'text', text: prompt }
       ]}],
-      temperature: 0.7,
+      temperature: 0.15,
       max_tokens: 2048
     })
   });
@@ -2850,7 +2854,7 @@ async function openrouterGen(key, dataUrl, cardId) {
               { type: 'text', text: PROMPT },
             ],
           }],
-          temperature: 0.7,
+          temperature: 0.15,
           max_tokens: 1800,
         }),
       });
