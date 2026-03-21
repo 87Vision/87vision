@@ -2035,10 +2035,10 @@
         <div class="avatar-menu" id="avatar-menu">
           <div class="am-info" id="am-email">—</div>
           <div class="am-info" id="am-plan" style="margin-top:-4px">Plan : —</div>
-          <div class="am-item sep" onclick="showUpgradeModal()">⬆ Upgrader le plan</div>
-          <div class="am-item" onclick="show2FASettings()">🔐 Sécurité 2FA</div>
-          <div class="am-item" onclick="toggleNotifSetting()" id="notif-menu-item">🔔 Notifications : <span id="notif-status">—</span></div>
-          <div class="am-item danger" onclick="handleLogout()">↩ Se déconnecter</div>
+          <div class="am-item sep" id="am-upgrade" onclick="showUpgradeModal()">⬆ Upgrader le plan</div>
+          <div class="am-item" id="am-2fa" onclick="show2FASettings()">🔐 Sécurité 2FA</div>
+          <div class="am-item" onclick="toggleNotifSetting()" id="notif-menu-item">🔔 <span id="notif-label">Notifications : </span><span id="notif-status">—</span></div>
+          <div class="am-item danger" id="am-logout" onclick="handleLogout()">↩ Se déconnecter</div>
         </div>
       </div>
     </div>
@@ -2083,13 +2083,13 @@
 
       <!-- Niche template pills -->
       <div class="niche-pills" id="niche-pills">
-        <button class="niche-pill active" onclick="setNiche('',this)">🏷️ Général</button>
-        <button class="niche-pill" onclick="setNiche('mode',this)">👗 Mode</button>
+        <button class="niche-pill active" id="pill-general" onclick="setNiche('',this)">🏷️ Général</button>
+        <button class="niche-pill" id="pill-mode" onclick="setNiche('mode',this)">👗 Mode</button>
         <button class="niche-pill" onclick="setNiche('tech',this)">📱 High-Tech</button>
-        <button class="niche-pill" onclick="setNiche('luxe',this)">💎 Luxe</button>
+        <button class="niche-pill" id="pill-luxe" onclick="setNiche('luxe',this)">💎 Luxe</button>
         <button class="niche-pill" onclick="setNiche('food',this)">🍎 Food</button>
         <button class="niche-pill" onclick="setNiche('auto',this)">🚗 Auto</button>
-        <button class="niche-pill" onclick="setNiche('maison',this)">🏠 Maison</button>
+        <button class="niche-pill" id="pill-maison" onclick="setNiche('maison',this)">🏠 Maison</button>
         <button class="niche-pill" onclick="setNiche('sport',this)">⚽ Sport</button>
       </div>
 
@@ -2424,6 +2424,9 @@ const UI_TRANS = {
     prog1:'📸 Analyse image', prog2:'🤖 Génération IA', prog3:'✏️ Rédaction fiche', prog4:'🎯 Optimisation SEO',
     histTitle:'Historique', histSearch:'🔍 Rechercher...',
     histTotal:'fiches générées au total', histMonth:'ce mois-ci', histTags:'tags générés',
+    pillGeneral:'🏷️ Général', pillMode:'👗 Mode', pillLuxe:'💎 Luxe', pillMaison:'🏠 Maison',
+    amUpgrade:'⬆ Upgrader le plan', am2fa:'🔐 Sécurité 2FA', amNotif:'Notifications : ', amLogout:'↩ Se déconnecter',
+    quotaUnlimited:'fiches (illimité)', quotaUnit:'fiches',
     uiBtn:'🇬🇧 EN',
   },
   en: {
@@ -2437,6 +2440,9 @@ const UI_TRANS = {
     prog1:'📸 Image analysis', prog2:'🤖 AI generation', prog3:'✏️ Writing sheet', prog4:'🎯 SEO optimization',
     histTitle:'History', histSearch:'🔍 Search...',
     histTotal:'total sheets generated', histMonth:'this month', histTags:'tags generated',
+    pillGeneral:'🏷️ General', pillMode:'👗 Fashion', pillLuxe:'💎 Luxury', pillMaison:'🏠 Home',
+    amUpgrade:'⬆ Upgrade plan', am2fa:'🔐 2FA Security', amNotif:'Notifications: ', amLogout:'↩ Sign out',
+    quotaUnlimited:'sheets (unlimited)', quotaUnit:'sheets',
     uiBtn:'🇫🇷 FR',
   }
 };
@@ -2465,6 +2471,14 @@ function applyUILang() {
   s('hist-stat-lbl-total', t.histTotal);
   s('hist-stat-lbl-month', t.histMonth);
   s('hist-stat-lbl-tags', t.histTags);
+  s('pill-general', t.pillGeneral);
+  s('pill-mode', t.pillMode);
+  s('pill-luxe', t.pillLuxe);
+  s('pill-maison', t.pillMaison);
+  s('am-upgrade', t.amUpgrade);
+  s('am-2fa', t.am2fa);
+  s('notif-label', t.amNotif);
+  s('am-logout', t.amLogout);
   s('ui-lang-btn', t.uiBtn);
   const hs = document.getElementById('hist-search'); if(hs) hs.placeholder = t.histSearch;
 }
@@ -2674,10 +2688,10 @@ function refreshHeader() {
   const dot  = document.getElementById('q-dot');
   const txt  = document.getElementById('q-text');
   if (limit === -1) {
-    txt.textContent   = `${used} fiches (illimité)`;
+    txt.textContent   = `${used} ${UI_TRANS[uiLang].quotaUnlimited}`;
     dot.className     = 'quota-dot';
   } else {
-    txt.textContent   = `${used} / ${limit} fiches`;
+    txt.textContent   = `${used} / ${limit} ${UI_TRANS[uiLang].quotaUnit}`;
     const r = used / limit;
     dot.className     = 'quota-dot' + (r >= 1 ? ' danger' : r >= 0.8 ? ' warning' : '');
   }
