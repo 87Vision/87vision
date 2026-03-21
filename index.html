@@ -2353,6 +2353,7 @@ let twoFAPending = false;
 let twoFAChallId = null;
 let twoFAFactorId = null;
 let _pendingHint = ''; // hint captured at generation start, used by buildPrompt
+let _loginInProgress = false; // guard against concurrent loginUser calls
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
 async function init() {
@@ -2413,6 +2414,9 @@ async function googleLogin() {
 
 async function loginUser(u) {
   if (twoFAPending) return; // already waiting for 2FA, ignore re-trigger
+  if (_loginInProgress) return; // prevent concurrent logins
+  if (user?.id === u.id && profile) return; // already logged in as this user
+  _loginInProgress = true;
   user = u;
 
   // ── Check TOTP factors ──────────────────────────────────────────────────
@@ -2427,6 +2431,7 @@ async function loginUser(u) {
   }
 
   await completeLogin(u);
+  _loginInProgress = false;
 }
 
 async function startTOTPChallenge() {
@@ -2464,10 +2469,10 @@ async function completeLogin(u) {
   user = u;
   await loadProfile();
 
-  // Session token anti-partage
+  // Session token anti-partage (en arrière-plan, ne bloque pas l'affichage)
   const token = crypto.randomUUID();
   localStorage.setItem('87v_st_' + u.id, token);
-  await SB.auth.updateUser({ data: { session_token: token } });
+  SB.auth.updateUser({ data: { session_token: token } }); // no await — background
 
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -2493,10 +2498,19 @@ async function loadProfile() {
   const { data, error } = await SB.from('users').select('*').eq('id', user.id).single();
 
   if (error || !data) {
-    const { data: np } = await SB.from('users')
-      .insert({ id: user.id, email: user.email, plan: 'free', sheets_used: 0, quota_limit: 3 })
-      .select().single();
-    profile = np;
+    // Le trigger SQL peut ne pas avoir encore créé la ligne — on attend 600ms et on réessaie
+    await new Promise(r => setTimeout(r, 600));
+    const { data: retry } = await SB.from('users').select('*').eq('id', user.id).single();
+    if (retry) {
+      profile = retry;
+      await checkReset();
+    } else {
+      // Dernier recours : upsert
+      const { data: np } = await SB.from('users')
+        .upsert({ id: user.id, email: user.email, plan: 'free', sheets_used: 0, quota_limit: 3 }, { onConflict: 'id' })
+        .select().single();
+      profile = np || { id: user.id, email: user.email, plan: 'free', sheets_used: 0, quota_limit: 3, quota_reset_date: null };
+    }
   } else {
     profile = data;
     await checkReset();
