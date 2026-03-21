@@ -2021,6 +2021,7 @@
       <button class="nav-btn active" id="nav-gen" onclick="switchView('gen')">Générateur</button>
       <button class="nav-btn" id="nav-hist" onclick="switchView('hist')">Historique</button>
     </nav>
+    <button id="ui-lang-btn" onclick="toggleUILang()" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-muted);font-size:12px;padding:4px 10px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">🇬🇧 EN</button>
     <div class="header-right">
       <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Changer le thème">🌙</button>
       <div class="quota-badge">
@@ -2095,7 +2096,7 @@
       <!-- Options bar -->
       <div class="options-bar">
         <div class="opt-group">
-          <label class="opt-label">Langue de sortie</label>
+          <label class="opt-label" id="opt-label-lang">Langue de sortie</label>
           <select class="opt-select" id="opt-lang" onchange="lang=this.value;localStorage.setItem('87v_lang',this.value)">
             <option value="fr">🇫🇷 Français</option>
             <option value="en">🇬🇧 English</option>
@@ -2105,7 +2106,7 @@
           </select>
         </div>
         <div class="opt-group">
-          <label class="opt-label">Ton éditorial</label>
+          <label class="opt-label" id="opt-label-tone">Ton éditorial</label>
           <select class="opt-select" id="opt-tone" onchange="tone=this.value;localStorage.setItem('87v_tone',this.value)">
             <option value="standard">Standard</option>
             <option value="luxe">Luxe &amp; Premium</option>
@@ -2115,7 +2116,7 @@
           </select>
         </div>
         <div class="opt-group">
-          <label class="opt-label">Plateforme cible</label>
+          <label class="opt-label" id="opt-label-platform">Plateforme cible</label>
           <select class="opt-select" id="opt-platform" onchange="platform=this.value;localStorage.setItem('87v_platform',this.value)">
             <option value="generic">Générique</option>
             <option value="shopify">Shopify</option>
@@ -2131,8 +2132,8 @@
       <div class="dropzone" id="dropzone">
         <input type="file" id="file-input" accept="image/*" multiple>
         <div class="dz-icon">📸</div>
-        <div class="dz-title">Glissez vos photos ici</div>
-        <div class="dz-sub">ou cliquez pour parcourir — jusqu'à 10 photos simultanées (JPG, PNG, WEBP)</div>
+        <div class="dz-title" id="dz-title-el">Glissez vos photos ici</div>
+        <div class="dz-sub" id="dz-sub-el">ou cliquez pour parcourir — jusqu'à 10 photos simultanées (JPG, PNG, WEBP)</div>
       </div>
 
       <!-- Queue -->
@@ -2140,12 +2141,12 @@
 
       <!-- AI Hint -->
       <div style="margin-bottom:12px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:6px">🏷️ Marque / Modèle — <span style="color:var(--warning)">Fortement recommandé pour éviter les erreurs IA</span></div>
+        <div id="ai-hint-label" style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:6px">🏷️ Marque / Modèle — <span style="color:var(--warning)">Fortement recommandé pour éviter les erreurs IA</span></div>
         <input type="text" id="ai-hint" placeholder="⚠ Ex: Bottega Veneta Pouch · Nike Air Max 90 OG · iPhone 15 Pro · Jordan 1 Retro High OG Chicago"
           style="width:100%;padding:10px 14px;background:var(--bg-surface);border:1px solid rgba(201,168,76,0.35);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none;transition:border-color .2s"
           onfocus="this.style.borderColor='rgba(201,168,76,0.7)'" onblur="this.style.borderColor='rgba(201,168,76,0.35)'"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();generate()}">
-        <div style="font-size:11px;color:var(--warning);margin-top:5px">⚠ L'IA peut confondre les marques sur les photos — précisez la marque exacte pour garantir la précision</div>
+        <div id="ai-hint-warning" style="font-size:11px;color:var(--warning);margin-top:5px">⚠ L'IA peut confondre les marques sur les photos — précisez la marque exacte pour garantir la précision</div>
       </div>
 
       <!-- Generate -->
@@ -2188,19 +2189,19 @@
       <div class="hist-stats" id="hist-stats" style="display:none">
         <div class="hist-stat-card">
           <div class="hist-stat-num" id="hist-total">0</div>
-          <div class="hist-stat-lbl">fiches générées au total</div>
+          <div class="hist-stat-lbl" id="hist-stat-lbl-total">fiches générées au total</div>
         </div>
         <div class="hist-stat-card">
           <div class="hist-stat-num" id="hist-month">0</div>
-          <div class="hist-stat-lbl">ce mois-ci</div>
+          <div class="hist-stat-lbl" id="hist-stat-lbl-month">ce mois-ci</div>
         </div>
         <div class="hist-stat-card">
           <div class="hist-stat-num" id="hist-tags">0</div>
-          <div class="hist-stat-lbl">tags générés</div>
+          <div class="hist-stat-lbl" id="hist-stat-lbl-tags">tags générés</div>
         </div>
       </div>
       <div class="hist-header">
-        <h2>Historique</h2>
+        <h2 id="hist-h2">Historique</h2>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="text" id="hist-search" placeholder="🔍 Rechercher..." onInput="filterHistory(this.value)"
             style="padding:7px 12px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none;width:200px;transition:border-color .2s"
@@ -2400,6 +2401,7 @@ let histData = []; // loaded history
 let obStep = 0;
 let view = 'gen';
 let lang     = localStorage.getItem('87v_lang')     || 'fr';
+let uiLang   = localStorage.getItem('87v_uilang')   || 'fr';
 let tone     = localStorage.getItem('87v_tone')     || 'standard';
 let platform = localStorage.getItem('87v_platform') || 'generic';
 let provider = 'groq'; // 'groq' | 'anthropic'
@@ -2409,8 +2411,73 @@ let twoFAFactorId = null;
 let _pendingHint = ''; // hint captured at generation start, used by buildPrompt
 let _loginInProgress = false; // guard against concurrent loginUser calls
 
+// ─── UI LANGUAGE (FR / EN) ───────────────────────────────────────────────────
+const UI_TRANS = {
+  fr: {
+    navGen:'Générateur', navHist:'Historique',
+    providerLabel:'Fournisseur IA', providerHint:'Groq intégré — aucune clé requise',
+    optLang:'Langue de sortie', optTone:'Ton éditorial', optPlatform:'Plateforme cible',
+    dzTitle:'Glissez vos photos ici', dzSub:'ou cliquez pour parcourir — jusqu\'à 10 photos simultanées (JPG, PNG, WEBP)',
+    brandLabel:'🏷️ MARQUE / MODÈLE — <span style="color:var(--warning)">Fortement recommandé pour éviter les erreurs IA</span>',
+    brandWarn:'⚠ L\'IA peut confondre les marques sur les photos — précisez la marque exacte pour garantir la précision',
+    genBtn:'Générer les fiches produit',
+    prog1:'📸 Analyse image', prog2:'🤖 Génération IA', prog3:'✏️ Rédaction fiche', prog4:'🎯 Optimisation SEO',
+    histTitle:'Historique', histSearch:'🔍 Rechercher...',
+    histTotal:'fiches générées au total', histMonth:'ce mois-ci', histTags:'tags générés',
+    uiBtn:'🇬🇧 EN',
+  },
+  en: {
+    navGen:'Generator', navHist:'History',
+    providerLabel:'AI Provider', providerHint:'Groq built-in — no key required',
+    optLang:'Output language', optTone:'Editorial tone', optPlatform:'Target platform',
+    dzTitle:'Drop your photos here', dzSub:'or click to browse — up to 10 photos at once (JPG, PNG, WEBP)',
+    brandLabel:'🏷️ BRAND / MODEL — <span style="color:var(--warning)">Highly recommended to avoid AI errors</span>',
+    brandWarn:'⚠ AI may confuse brands in photos — specify the exact brand for best accuracy',
+    genBtn:'Generate product sheets',
+    prog1:'📸 Image analysis', prog2:'🤖 AI generation', prog3:'✏️ Writing sheet', prog4:'🎯 SEO optimization',
+    histTitle:'History', histSearch:'🔍 Search...',
+    histTotal:'total sheets generated', histMonth:'this month', histTags:'tags generated',
+    uiBtn:'🇫🇷 FR',
+  }
+};
+
+function applyUILang() {
+  const t = UI_TRANS[uiLang];
+  const s = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  const h = (id, htm) => { const el = document.getElementById(id); if(el) el.innerHTML = htm; };
+  s('nav-gen', t.navGen);
+  s('nav-hist', t.navHist);
+  s('apikey-provider-label', t.providerLabel);
+  s('apikey-provider-hint', t.providerHint);
+  s('opt-label-lang', t.optLang);
+  s('opt-label-tone', t.optTone);
+  s('opt-label-platform', t.optPlatform);
+  s('dz-title-el', t.dzTitle);
+  s('dz-sub-el', t.dzSub);
+  h('ai-hint-label', t.brandLabel);
+  s('ai-hint-warning', t.brandWarn);
+  s('gen-label', t.genBtn);
+  s('prog-1', t.prog1);
+  s('prog-2', t.prog2);
+  s('prog-3', t.prog3);
+  s('prog-4', t.prog4);
+  s('hist-h2', t.histTitle);
+  s('hist-stat-lbl-total', t.histTotal);
+  s('hist-stat-lbl-month', t.histMonth);
+  s('hist-stat-lbl-tags', t.histTags);
+  s('ui-lang-btn', t.uiBtn);
+  const hs = document.getElementById('hist-search'); if(hs) hs.placeholder = t.histSearch;
+}
+
+function toggleUILang() {
+  uiLang = uiLang === 'fr' ? 'en' : 'fr';
+  localStorage.setItem('87v_uilang', uiLang);
+  applyUILang();
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
 async function init() {
+  applyUILang();
   SB = supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
 
   const { data: { session: s } } = await SB.auth.getSession();
